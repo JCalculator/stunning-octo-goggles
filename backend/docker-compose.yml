@@ -1,0 +1,52 @@
+services:
+  api:
+    build:
+      dockerfile: Dockerfile
+      context: .
+      target: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    command: pnpm run start:dev
+    ports:
+      - 3000:3000
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - '8001:5432'
+    volumes:
+      - pgdb-docker:/var/lib/postgresql/data
+  test_database:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_TEST_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - '8002:5432'
+    volumes:
+    - pgdb-docker-test:/var/lib/postgresql/data
+  libretranslate:
+    image: libretranslate/libretranslate
+    restart: unless-stopped
+    environment:
+      - with_models=true
+      - models=es,fr,en
+      # Multiple languages possible, but it takes time to download the models
+      # - models=es,fr,de,it,pt,ru,zh,ja,ko,ar,en
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ['CMD-SHELL', './venv/bin/python scripts/healthcheck.py']
+
+volumes:
+  pgdb-docker: {}
+  pgdb-docker-test: {}
